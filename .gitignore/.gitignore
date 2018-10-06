@@ -1021,3 +1021,304 @@ class ASTGeneration(MPVisitor):
 
     def visitStringLiteral(self, param):
         pass
+
+/*grammar MP;
+
+@lexer::header {
+from lexererr import *
+}
+
+options{
+	language=Python3;
+}
+
+program  : decl+ EOF;
+
+decl: funcdecl | procdecl;
+
+procdecl: PROCEDURE ID LB RB SEMI body; 
+
+funcdecl: FUNCTION ID LB RB COLON mtype SEMI body;
+
+body: BEGIN stmt* END  ;
+
+stmt: funcall SEMI;
+
+funcall: ID LB exp? RB ;
+
+exp: INTLIT ;
+
+mtype: INTTYPE;
+
+INTLIT: [0-9]+ ;
+
+LB: '(' ;
+
+RB: ')' ;
+
+SEMI: ';' ;
+
+COLON: ':' ;
+
+WS : [ \t\r\n]+ -> skip ; // skip spaces, tabs, newlines
+
+PROCEDURE: P R O C E D U R E;
+
+FUNCTION: F U N C T I O N;
+
+BEGIN: B E G I N;
+
+END: E N D;
+
+INTTYPE: I N T E G E R;
+
+ID: [a-zA-Z]+ ;
+
+fragment A : [aA];
+fragment B : [bB];
+fragment C : [cC];
+fragment D : [dD];
+fragment E : [eE];
+fragment F : [fF];
+fragment G : [gG];
+fragment H : [hH];
+fragment I : [iI];
+fragment J : [jJ];
+fragment K : [kK];
+fragment L : [lL];
+fragment M : [mM];
+fragment N : [nN];
+fragment O : [oO];
+fragment P : [pP];
+fragment Q : [qQ];
+fragment R : [rR];
+fragment S : [sS];
+fragment T : [tT];
+fragment U : [uU];
+fragment V : [vV];
+fragment W : [wW];
+fragment X : [xX];
+fragment Y : [yY];
+fragment Z : [zZ];
+
+ERROR_CHAR: .;
+*/
+
+/*
+ID 1652606
+*/
+grammar MP;
+
+@lexer::header {
+
+from lexererr import *
+}
+
+options{
+	language=Python3;
+}
+
+program  :manydeclares+ EOF;
+manydeclares: vardecls|funcdeclare|procdeclare|arraytype|statement;
+expresslist: expression (COMMA expression)*| expression?;
+idlist: ID (COMMA ID)*;
+vardecls: VARTYPE vardecl+ | VARTYPE ID SEMI;
+vardecl: idlist COLON r_type SEMI;
+//r_type: r_type | arraytype;
+r_type:INTTYPE | STRINGTYPE | FLOATTYPE| BOOLEANTYPE;
+arraytype: ARRAY LSB indexrange RSB OF r_type;
+indexrange : expression DD expression;
+
+funcdeclare: FUNCTION ID LB paralist RB COLON r_type SEMI vardecls * compoundstatement;
+//funcall2: ID LB paralist RB COLON returntype SEMI;
+//test2:VARTYPE idlist COLON r_type compoundstatement? returnstate1? SEMI;
+paralist: paradeclare?;
+paradeclare: parameter (SEMI parameter)*;
+parameter:  idlist COLON r_type;
+compoundstatement: BEGIN statement* END;
+//returntype: r_type|arraytype;
+
+procdeclare: PROCEDURE ID LB paralist RB SEMI vardecl* compoundstatement;
+//test :VARTYPE idlist COLON r_type compoundstatement? returnstate2? SEMI;
+
+//keyword : STRINGTYPE | FLOATTYPE | BOOLEANTYPE | ARRAY | VARTYPE | BREAK | CONTINUE | FOR | TO | IF | THEN | ELSE | RETURN | WHILE | TRUE | FALSE | OF | REALTYPE | INTEGER | DOWNTO | FUNCTION | BEGIN | END | PROCEDURE | AND | OR | MOD | DIV;
+
+index_exp: ID (LB indexpress* RB)? LT indexpress RT;
+
+expression: expression2 | index_exp | invocate_express;
+expression2:expression2 ('AND THEN' | 'OR ELSE') express1 | express1;
+
+express1: express2 EQUALS express2 | express2 LR express2 | express2 LT express2	| express2 LE express2	| express2 RT express2	| express2 RE express2	| express2;
+
+express2: express2 PLUS express3	| express2 MINUS express3	| express2 OR express3	| express3;
+
+express3: express3 DIVIDE express4	| express3 MULT express4	| express3 DIV express4	| express3 MOD express4	| express3 AND express4	| express4;
+
+express4: express5 MINUS express4	| express5 NOT express4;
+
+express5: LSB expression RSB| lit | ID | funcdeclare;
+
+indexpress: indexpress PLUS indexpress1 | indexpress MINUS indexpress1 | indexpress1;
+
+indexpress1: indexpress1 DIVIDE indexpress2	| indexpress1 MULT indexpress2	| indexpress1 DIV indexpress2	| indexpress1 MOD indexpress2	| indexpress2;
+
+indexpress2: LB indexpress RB	| ID LT indexpress RT	| INTLIT | ID;
+
+invocate_express: ID LB expresslist RB;
+
+statement:assignstate|ifstate|whilestate|forstate|compoundstatement|withstate|returnstate1|returnstate2|callstate;
+
+assignstate: lhslist SEMI;
+lhslist : var ASSIGN assignstate | var ASSIGN expression ;
+var: ID| index_exp;
+//arrayele:ID LSB INTLIT RSB;
+//funcele: ID LB paralist RB LSB INTLIT RSB;
+
+ifstate: ifstate1|ifstate2;
+ifstate1: expression THEN statement ELSE statement ;
+ifstate2:expression THEN statement ;
+//boolexpression: var COMPARE var ;
+
+whilestate: WHILE expression DO statement  breakstate? continuestate? SEMI;
+
+forstate: FOR ID ASSIGN expression (TO|DOWNTO) expression DO statement breakstate? continuestate? SEMI;
+
+breakstate: BREAK SEMI;
+
+continuestate: CONTINUE SEMI;
+
+returnstate1: RETURN expression SEMI;
+returnstate2: RETURN SEMI;
+callstate: ID LB expresslist RB SEMI;
+withstate: WITH vardecllist DO statement;
+
+
+vardecllist: vardecl1 (SEMI vardecl1)*;
+vardecl1: idlist COLON (r_type|arraytype);
+
+funcall2: ID LB decl* RB ;
+decl: expression (COMMA expression)*;
+//mainproc: PROCEDURE 'main' '{' program '}';
+
+
+//code end here
+INTTYPE: I N T E G E R  ;
+
+VOIDTYPE: 'void'  ;
+
+
+INTLIT: [0-9]+;
+
+LB: '(' ;
+RB: ')' ;
+
+LP: '{';
+
+RP: '}';
+
+SEMI: ';' ;
+//code start here
+fragment A:('a'|'A');
+fragment B:('b'|'B');
+fragment C:('c'|'C');
+fragment D:('d'|'D');
+fragment E:('e'|'E');
+fragment F:('f'|'F');
+fragment G:('g'|'G');
+fragment H:('h'|'H');
+fragment I:('i'|'I');
+fragment J:('j'|'J');
+fragment K:('k'|'K');
+fragment L:('l'|'L');
+fragment M:('m'|'M');
+fragment N:('n'|'N');
+fragment O:('o'|'O');
+fragment P:('p'|'P');
+fragment Q:('q'|'Q');
+fragment R:('r'|'R');
+fragment S:('s'|'S');
+fragment T:('t'|'T');
+fragment U:('u'|'U');
+fragment V:('v'|'V');
+fragment W:('w'|'W');
+fragment X:('x'|'X');
+fragment Y:('y'|'Y');
+fragment Z:('z'|'Z');
+fragment NEWLINE   : '\r' '\n' | '\n' | '\r';
+
+PLUS : '+';
+MINUS : '-';
+DIVIDE: '/';
+DIV: D I V;
+MOD: M O D;
+NOT: N O T ;
+OR:O R;
+AND:A N D ;
+MULT : '*';
+EQUALS : '=';
+ASSIGN:':=';
+RT : '>';
+LT : '<';
+LE : '<=';
+RE : '>=';
+LR : '<>';
+COMMA: ',';
+COLON : ':';
+LSB:'[';
+RSB:']';
+DD:'..';
+COMPARE: RT|LT|LE|RE|LR|EQUALS;
+VARTYPE: V A R ;
+STRINGTYPE:S T R I N G;
+FLOATTYPE:F L O A T ;
+BOOLEANTYPE:B O O L E A N ;
+ARRAY:A R R A Y ;
+BREAK:B R E A K ;
+CONTINUE:C O N T I N U E ;
+FOR:F O R ;
+TO:T O ;
+IF:I F ;
+THEN:T H E N ;
+ELSE:E L S E ;
+RETURN:R E T U R N ;
+WHILE:W H I L E ;
+TRUE:T R U E ;
+FALSE:F A L S E ;
+OF :O F ;
+REALTYPE:R E A L ;
+INTEGER: I N T E G E R ;
+DOWNTO:D O W N T O;
+WITH: W I T H;
+DO:D O;
+
+
+FUNCTION:F U N C T I O N ;
+BEGIN:B E G I N ;
+END:E N D ;
+PROCEDURE:P R O C E D U R E ;
+lit: INTLIT | FLOATLIT | BOOLIT | STRINGLIT;
+FLOATLIT: MINUS? INTLIT+ '.' INTLIT* EXPO? | MINUS? '.' INTLIT+ EXPO? | MINUS? INTLIT+ EXPO;
+fragment EXPO : ('e'|'E') ('+'|'-')? ('0'..'9')+ ;
+BOOLIT:TRUE|FALSE;
+
+STRINGLIT: '"' CHARS? '"';
+fragment CHARS: CHAR+;
+fragment CHAR:~[\b\f\r\t\n"\\]|ESCAPE;
+fragment ESCAPE:'\\' [bfrnt"'\\];
+
+
+REALLIT: FLOATLIT PLUS (FLOATLIT 'i');
+HEX: '0'X[0-9A-Fa-f]+;
+BLOCK:'(*' .*? '*)' -> skip;
+BLOCK2: '{' .*? '}' ->skip;
+LINE: '//' ~ [\r\n]* -> skip;
+
+ID: [a-zA-Z_][a-zA-Z0-9_]* ;
+
+WS : [ \t\r\n]+ -> skip ; // skip spaces, tabs, newlines
+
+
+ERROR_CHAR: . {raise ErrorToken(self.text)} ;
+UNCLOSE_STRING: . {raise ErrorToken(self.text)} ; 
+ILLEGAL_ESCAPE: . {raise ErrorToken(self.text)} ;
+
